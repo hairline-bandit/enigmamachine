@@ -35,6 +35,8 @@ ref_b_util = "YRUHQSLDPXNGOKMIEBFZCWVJAT"
 ref_c = {"A": "", "B": "", "C": "", "D": "", "E": "", "F": "", "G": "", "H": "", "I": "", "J": "", "K": "", "L": "", "M": "", "N": "", "O": "", "P": "", "Q": "", "R": "", "S": "", "T": "", "U": "", "V": "", "W": "", "X": "", "Y": "", "Z": ""}
 ref_c_util = "FVPJIAOYEDRZXWGCTKUQSBNMHL"
 
+plugboard = {}
+
 rotor_ref = {"i": one, "ii": two, "iii": three, "iv": four, "v": five}
 rotor_rev_ref = {"i": one_rev, "ii": two_rev, "iii": three_rev, "iv": four_rev, "v": five_rev}
 ref_ref = {"a": ref_a, "b": ref_b, "c": ref_c}
@@ -109,6 +111,7 @@ def rot(rotor):
     ref_ref = {"a": ref_a, "b": ref_b, "c": ref_c}
 
 def encrypt():
+    global plugboard
     plain = input("Enter your message (only letters): ")
     plain = plain.upper()
 
@@ -120,7 +123,23 @@ def encrypt():
     medium = input("Enter roman numeral for medium rotor (i, ii, iii, iv, v): ").strip()
     slow = input("Enter roman numeral for slow rotor (i, ii, iii, iv, v): ").strip()
     reflector = input("Enter letter for reflector (a, b, c): ").strip()
-
+    
+    counter = 0
+    letters = list(util)
+    while counter < 10:
+        c = input("Enter a letter followed by a space and another (eg. \"A B\" to map a to b for the plugboard) or \"exit\" to quit (any unused letters will be defaulted to no connection): ")
+        if c == "exit":
+            break
+        elif c.split(" ")[0] == c.split(" ")[1]:
+            exit()
+        elif not c.split(" ")[0] in letters or not c.split(" ")[1] in letters:
+            exit()
+        else:
+            plugboard[c.split(" ")[0]] = c.split(" ")[1]
+            plugboard[c.split(" ")[1]] = c.split(" ")[0]
+            letters.remove(c.split(" ")[0])
+            letters.remove(c.split(" ")[1])
+        counter+=1
     if fast == medium or medium == slow or slow == fast:
         exit()
 
@@ -152,7 +171,9 @@ def encrypt():
         if letter == " ":
             cipher += " "
             continue
-        cipher += rotor_rev_ref[fast][rotor_rev_ref[medium][rotor_rev_ref[slow][ref_ref[reflector][rotor_ref[slow][rotor_ref[medium][rotor_ref[fast][letter]]]]]]]
+        curr = letter if letter not in plugboard else plugboard[letter]
+        tmp = rotor_rev_ref[fast][rotor_rev_ref[medium][rotor_rev_ref[slow][ref_ref[reflector][rotor_ref[slow][rotor_ref[medium][rotor_ref[fast][curr]]]]]]]
+        cipher += tmp if tmp not in plugboard else plugboard[tmp]
         rot(fast)
         layout[2] = (layout[2] + 1) % 26
         if layout[2] == step_ref[fast]:
@@ -164,21 +185,39 @@ def encrypt():
     print("Ciphertext: " + cipher)
 
 def decrypt():
-    cipher = input("Enter the ciphertext: ")
-    cipher = cipher.upper()
+    global plugboard
+    plain = input("Enter ciphertext: ")
+    plain = plain.upper()
 
-    plain = ""
+    cipher = ""
 
-    layout = [0, 0, 0]
+    layout = [0, 0, 0] # AAA
 
-    fast = input("Enter the fast rotor that was used to encrypt: ")
-    medium = input("Enter the medium rotor that was used to encrypt: ")
-    slow = input("Enter the slow rotor that was used to encrypt: ")
-    reflector = input("Enter the reflector that was used to encrypt: ")
-
-    if fast == medium or medium == slow or fast == slow:
+    fast = input("Enter roman numeral for fast rotor (i, ii, iii, iv, v): ").strip()
+    medium = input("Enter roman numeral for medium rotor (i, ii, iii, iv, v): ").strip()
+    slow = input("Enter roman numeral for slow rotor (i, ii, iii, iv, v): ").strip()
+    reflector = input("Enter letter for reflector (a, b, c): ").strip()
+    
+    counter = 0
+    letters = list(util)
+    while counter < 10:
+        c = input("Enter a letter followed by a space and another (eg. \"A B\" to map a to b for the plugboard) or \"exit\" to quit (any unused letters will be defaulted to no connection): ")
+        if c == "exit":
+            break
+        elif c.split(" ")[0] == c.split(" ")[1]:
+            exit()
+        elif not c.split(" ")[0] in letters or not c.split(" ")[1] in letters:
+            exit()
+        else:
+            plugboard[c.split(" ")[0]] = c.split(" ")[1]
+            plugboard[c.split(" ")[1]] = c.split(" ")[0]
+            letters.remove(c.split(" ")[0])
+            letters.remove(c.split(" ")[1])
+        counter+=1
+    if fast == medium or medium == slow or slow == fast:
         exit()
-    lay = input("Enter starting rotor layout used to encrypt: ")
+
+    lay = input("Enter starting rotor layout (AAA, AAB, etc.), or leave blank for AAA: ")
     if len(lay) == 0:
         pass
     elif len(lay) == 3:
@@ -201,12 +240,14 @@ def decrypt():
     if layout[1] == step_ref[medium]:
         rot(slow)
         layout[0] = (layout[0] + 1) % 26
-    
-    for letter in cipher:
+
+    for letter in plain:
         if letter == " ":
-            plain += " "
+            cipher += " "
             continue
-        plain += rotor_rev_ref[fast][rotor_rev_ref[medium][rotor_rev_ref[slow][ref_ref[reflector][rotor_ref[slow][rotor_ref[medium][rotor_ref[fast][letter]]]]]]]
+        curr = letter if letter not in plugboard else plugboard[letter]
+        tmp = rotor_rev_ref[fast][rotor_rev_ref[medium][rotor_rev_ref[slow][ref_ref[reflector][rotor_ref[slow][rotor_ref[medium][rotor_ref[fast][curr]]]]]]]
+        cipher += tmp if tmp not in plugboard else plugboard[tmp]
         rot(fast)
         layout[2] = (layout[2] + 1) % 26
         if layout[2] == step_ref[fast]:
@@ -215,7 +256,7 @@ def decrypt():
         if layout[1] == step_ref[medium]:
             rot(slow)
             layout[0] = (layout[0] + 1) % 26
-    print("Plaintext: " + plain)
+    print("Plaintext: " + cipher)
 
 def main():
     init()
